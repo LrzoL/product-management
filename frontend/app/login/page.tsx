@@ -19,15 +19,26 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Chamada para o endpoint de autenticação JWT
       const response = await api.post('/auth/login', { email, password });
       
-      // Armazenamento seguro dos dados de sessão
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      const { access_token, user } = response.data;
 
-      // Redirecionamento para a área logada (Dashboard)
-      router.push('/dashboard');
+      // 1. Armazenamento no LocalStorage (Para uso nos componentes)
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      // 2. Armazenamento em Cookie (ESSENCIAL para o Middleware de proteção de rotas)
+      document.cookie = `auth_token=${access_token}; path=/; max-age=86400`; // 24h
+      document.cookie = `user_role=${user.role}; path=/; max-age=86400`;
+
+      // 3. REDIRECIONAMENTO INTELIGENTE
+      // Se for ADMIN, vai para a visão geral. Se for USER, vai para produtos.
+      if (user.role === 'ADMIN') {
+        router.push('/dashboard');
+      } else {
+        router.push('/dashboard/products');
+      }
+      
     } catch (err: any) {
       const message = err.response?.data?.message || 'Credenciais inválidas. Verifique seu e-mail e senha.';
       setError(Array.isArray(message) ? message[0] : message);
@@ -115,7 +126,6 @@ export default function LoginPage() {
         </form>
       </div>
       
-      {/* Rodapé de Conformidade */}
       <div className="mt-8 text-center">
         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest opacity-60">
           Tecnologia da Informação • Governo de Pernambuco

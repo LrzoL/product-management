@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, Patch, Param, Request } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -15,15 +15,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @ApiOperation({
-    summary: 'Registra um novo usuário',
-    description: 'Cria uma conta de usuário para acessar o sistema.',
-  })
-  @ApiResponse({ status: 201, description: 'Usuário criado com sucesso.' })
-  @ApiResponse({
-    status: 400,
-    description: 'E-mail já cadastrado ou dados inválidos.',
-  })
+  @ApiOperation({ summary: 'Registra um novo usuário' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -31,10 +23,17 @@ export class UsersController {
   @Get()
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Lista usuários (Admin)', description: 'Retorna a lista de usuários cadastrados.' })
-  @ApiResponse({ status: 200, description: 'Lista retornada.' })
-  @ApiResponse({ status: 403, description: 'Acesso negado. Apenas administradores.' })
   findAll() {
     return this.usersService.findAll();
+  }
+
+  
+  @Patch(':id/role')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Alternar cargo do usuário' })
+  toggleRole(@Param('id') id: string, @Request() req: any) {
+   
+    return this.usersService.toggleRole(id, req.user.id);
   }
 }

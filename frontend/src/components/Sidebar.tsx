@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -7,21 +8,28 @@ import {
   Package, 
   Tags, 
   Users, 
-  ClipboardList, 
-  LogOut,
-  User
+  LogOut 
 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const { role } = JSON.parse(storedUser);
+      setUserRole(role);
+    }
+  }, []);
 
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    // Dashboard agora é apenas para ADMIN
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', adminOnly: true },
     { name: 'Produtos', icon: Package, path: '/dashboard/products' },
     { name: 'Categorias', icon: Tags, path: '/dashboard/categories' },
     { name: 'Usuários', icon: Users, path: '/dashboard/users', adminOnly: true },
-    { name: 'Auditoria', icon: ClipboardList, path: '/dashboard/audit', adminOnly: true },
   ];
 
   const handleLogout = () => {
@@ -40,6 +48,12 @@ export default function Sidebar() {
 
       <nav className="flex-1 p-4 space-y-1">
         {menuItems.map((item) => {
+          // OCULTAR PARA USUÁRIO COMUM:
+          // Se o item é adminOnly e o cargo não for ADMIN, não renderiza o link
+          if (item.adminOnly && userRole !== 'ADMIN') {
+            return null;
+          }
+
           const isActive = pathname === item.path;
           return (
             <Link

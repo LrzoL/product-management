@@ -1,29 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateProductDto {
-  @ApiProperty({ example: 'Notebook Gamer', description: 'Nome do produto' })
+  @ApiProperty({ example: 'Notebook Ryzen 5' })
   @IsString()
+  @IsNotEmpty({ message: 'O nome do produto é obrigatório' })
   name: string;
 
-  @ApiProperty({ example: 'Ryzen 5 4600H, 16GB RAM', required: false })
+  @ApiProperty({ example: '16GB RAM, SSD 512GB', required: false })
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ example: 4500.00, description: 'Preço em Reais' })
-  @IsNumber()
-  price: number;
-
-  @ApiProperty({ 
-    example: ['uuid-categoria-1'], 
-    description: 'IDs das categorias associadas',
-    type: [String] 
-  })
-  @IsArray()
-  @IsOptional()
-  categoryIds?: string[];
-
-  @ApiProperty({ type: 'string', format: 'binary', description: 'Imagem do produto' })
-  image: any;
+  @ApiProperty({ example: 'uuid-da-categoria' })
+  @IsString()
+  @IsNotEmpty({ message: 'A categoria é obrigatória' })
+  categoryId: string;
 }

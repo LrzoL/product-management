@@ -1,89 +1,96 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 
 @Injectable()
 export class ProductsService {
-  toggleFavorite(userId: string, productId: string) {
-    throw new Error('Method not implemented.');
+  constructor(private readonly prisma: PrismaService) {}
+
+  // LISTAGEM COMPLETA (Resolvendo o erro de Method Not Implemented)
+  async findAll(params: { page: number; search: string }) {
+    const { page, search } = params;
+    const take = 10;
+    const skip = (page - 1) * take;
+
+    const where = search ? { 
+      name: { contains: search, mode: 'insensitive' as const } 
+    } : {};
+
+    const [items, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        include: { 
+          categories: {
+            include: { category: true }
+          },
+          user: { select: { name: true } } 
+        },
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return { items, total, page };
   }
-  constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, dto: CreateProductDto, file?: Express.Multer.File) {
-    const { categoryIds, ...data } = dto;
-
-    return this.prisma.product.create({
+  // CRIAÇÃO: Usuário comum e Admin podem criar
+  async create(userId: string, dto: CreateProductDto, file: Express.Multer.File) {
+    const imageUrl = file ? `uploads/${file.filename}` : null;
+    
+    const product = await this.prisma.product.create({
       data: {
-        ...data,
-        userId,
-        imageUrl: file ? file.path : null,
+        name: dto.name.toUpperCase(),
+        description: dto.description,
+        userId: userId,
+        imageUrl: imageUrl,
         categories: {
-          create: categoryIds?.map(id => ({
-            category: { connect: { id } }
-          }))
+          create: {
+            categoryId: dto.categoryId
+          }
         }
       },
-      include: { categories: { include: { category: true } } }
-    });
-  }
-
-// Localize o método findAll e deixe-o EXATAMENTE assim:
-async findAll(query: { search?: string; page?: number }) {
-  const { page = 1, search } = query;
-  const take = 10;
-  const skip = (page - 1) * take;
-
-  const where = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' as const } },
-          { description: { contains: search, mode: 'insensitive' as const } },
-        ],
-      }
-    : {};
-
-  const [items, total] = await this.prisma.$transaction([
-    this.prisma.product.findMany({
-      where,
-      take,
-      skip,
       include: {
-        categories: { include: { category: true } },
-        user: { select: { name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-    this.prisma.product.count({ where }),
-  ]);
-
-  return {
-    items,
-    meta: {
-      total,
-      page,
-      lastPage: Math.ceil(total / take),
-    },
-  };
-}
-
-  async update(id: string, userId: string, dto: any) {
-    const product = await this.prisma.product.findUnique({ where: { id } });
-    if (!product) throw new NotFoundException('Produto não encontrado');
-    if (product.userId !== userId)
-      throw new ForbiddenException('Acesso negado');
-
-    return this.prisma.product.update({
-      where: { id },
-      data: dto,
+        categories: { include: { category: true } }
+      }
     });
+
+    // Auditoria Obrigatória
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'CRIAÇÃO',
+        entity: 'PRODUTO',
+        entityId: product.id,
+        userId: userId,
+        details: `CADASTROU O ATIVO: ${product.name}`,
+      }
+    });
+
+    return product;
   }
 
+  // REMOÇÃO: Apenas ADMIN
   async remove(id: string, userId: string) {
-    await this.update(id, userId, {}); // Reaproveita a lógica de verificação
-    return this.prisma.product.delete({ where: { id } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (user?.role !== 'ADMIN') {
+      throw new ForbiddenException('Apenas administradores podem excluir ativos.');
+    }
+
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product) throw new NotFoundException('Produto não encontrado.');
+
+    await this.prisma.product.delete({ where: { id } });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXCLUSÃO',
+        entity: 'PRODUTO',
+        entityId: id,
+        userId: userId,
+        details: `ADMIN REMOVEU O ATIVO: ${product.name}`,
+      }
+    });
   }
 }

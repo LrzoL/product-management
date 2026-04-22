@@ -4,18 +4,29 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'chave-secreta-desafio',
+      secretOrKey: process.env.JWT_SECRET || 'chave-secreta-govpe',
     });
   }
 
   async validate(payload: any) {
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) throw new UnauthorizedException();
-    return user; // O Nest coloca o retorno aqui dentro do Request
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado ou token inválido');
+    }
+    
+    // RETORNO PADRONIZADO: Agora o decorator @GetUser('id') vai encontrar o valor
+    return { 
+      id: user.id, 
+      email: user.email, 
+      role: user.role 
+    };
   }
 }

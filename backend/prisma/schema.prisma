@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // Remova a linha 'url = env(...)' daqui
 }
 
 enum Role {
@@ -11,59 +12,66 @@ enum Role {
   USER
 }
 
-//Usuários
 model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
   password  String
   role      Role     @default(USER)
-  avatarUrl String?  @map("avatar_url") // REQUISITO: Upload em usuários 
+  avatarUrl String?  @map("avatar_url")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   products   Product[]
   categories Category[]
-  favorites  Favorite[] // REQUISITO: Favoritar N produtos 
+  favorites  Favorite[]
+  auditLogs  AuditLog[]
 
   @@map("users")
 }
 
-//Produtos
 model Product {
   id          String   @id @default(uuid())
   name        String
   description String?
-  price       Decimal  @db.Decimal(10, 2)
-  imageUrl    String?  @map("image_url") // REQUISITO: Upload em produtos 
+  imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  categories ProductCategory[]
+  categories  ProductCategory[]
   favoritedBy Favorite[] 
 
   @@map("products")
 }
 
-//Categorias
 model Category {
   id        String   @id @default(uuid())
   name      String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  products ProductCategory[]
+  products  ProductCategory[]
 
   @@map("categories")
 }
 
-//Favoritos (N:N)
+model ProductCategory {
+  productId  String @map("product_id")
+  categoryId String @map("category_id")
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@map("product_categories")
+}
+
 model Favorite {
   userId    String @map("user_id")
   productId String @map("product_id")
@@ -73,27 +81,16 @@ model Favorite {
   @@id([userId, productId])
   @@map("favorites")
 }
-
-//Auditoria
 model AuditLog {
   id        String   @id @default(uuid())
-  action    String   // ex: "CREATE_PRODUCT", "UPDATE_USER"
-  entity    String   // ex: "Product", "User"
-  entityId  String
-  userId    String
+  action    String   
+  entity    String   
+  entityId  String   @map("entity_id")
   details   String?
   timestamp DateTime @default(now())
 
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("audit_logs")
-}
-
-model ProductCategory {
-  productId  String @map("product_id")
-  categoryId String @map("category_id")
-
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@id([productId, categoryId])
-  @@map("product_categories")
 }
