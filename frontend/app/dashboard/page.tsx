@@ -39,31 +39,53 @@ export default function DashboardPage() {
   }
 
   const exportToPDF = () => {
-    const doc = new jsPDF();
-    const now = new Date().toLocaleString();
-    doc.setFillColor(0, 71, 149);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.text('GOVERNO DE PERNAMBUCO', 14, 20);
+  const doc = new jsPDF();
+  const now = new Date().toLocaleString();
+  const storedUser = localStorage.getItem('user');
+  const adminName = storedUser ? JSON.parse(storedUser).name.toUpperCase() : "SISTEMA";
 
-    doc.setFontSize(9);
-    doc.text(`RELATÓRIO DE AUDITORIA - GERADO EM: ${now}`, 14, 30);
-    
-    autoTable(doc, {
-      startY: 50,
-      head: [['RESPONSÁVEL', 'AÇÃO REALIZADA', 'DATA E HORA']],
-      body: stats.recentActivities.map((a: any) => [
-        a.userName.toUpperCase(), 
-        a.action, 
-        new Date(a.date).toLocaleString() 
-      ]),
-      headStyles: { fillColor: [0, 71, 149] },
-      styles: { fontSize: 8, cellPadding: 3 },
-    });
+  // 1. Cabeçalho Principal
+  doc.setFillColor(0, 71, 149);
+  doc.rect(0, 0, 210, 45, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.text('GOVERNO DE PERNAMBUCO', 14, 15);
+  doc.setFontSize(10);
+  doc.text('SECRETARIA DE ADMINISTRAÇÃO - SISTEMA UNIFICADO', 14, 22);
+  
+  // 2. Metadados (Quem gerou e Quando)
+  doc.setFontSize(8);
+  doc.text(`RESPONSÁVEL PELA EMISSÃO: ${adminName}`, 14, 32);
+  doc.text(`DATA DE GERAÇÃO: ${now}`, 14, 37);
 
-    doc.save(`auditoria_${new Date().getTime()}.pdf`);
-  };
+  autoTable(doc, {
+    startY: 50,
+    head: [['RESPONSÁVEL', 'AÇÃO REALIZADA', 'DATA E HORA']],
+    body: stats.recentActivities.map((a: any) => [
+      a.userName.toUpperCase(), 
+      a.action, 
+      new Date(a.date).toLocaleString()
+    ]),
+    headStyles: { fillColor: [0, 71, 149], fontSize: 9, fontStyle: 'bold' },
+    bodyStyles: { fontSize: 8 },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    // 3. Adicionando numeração de páginas no rodapé
+    didDrawPage: (data) => {
+      const pageSize = doc.internal.pageSize;
+      const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        `Página ${data.pageNumber} - Documento Gerado via Sistema de Auditoria GovPE`,
+        14, 
+        pageHeight - 10
+      );
+    }
+  });
+
+  doc.save(`auditoria_govpe_${new Date().getTime()}.pdf`);
+};
 
   if (loading) return <div className="p-10 font-black text-[10px] uppercase">Validando Acesso...</div>;
 
