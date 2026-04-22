@@ -1,9 +1,11 @@
 🏛️ Sistema Unificado de Produtos - GovPE
 
-O Sistema Unificado de Produtos é uma solução Full-Stack de missão crítica desenvolvida para a gestão centralizada de ativos, usuários e categorias. O projeto foi construído seguindo rigorosos padrões de arquitetura de software, focando em auditabilidade, segurança da informação e uma experiência de usuário de alta performance.
+    O Sistema Unificado de Produtos é uma solução Full-Stack de missão crítica desenvolvida para a gestão centralizada de ativos, usuários e categorias. O projeto foi construído seguindo rigorosos padrões de arquitetura de software, focando em auditabilidade, segurança da informação e uma experiência de usuário de alta performance.
 
-Este sistema utiliza a identidade visual oficial do Governo de Pernambuco, garantindo uma interface institucional, acessível e profissional, ideal para ambientes de administração pública.
+    Este sistema utiliza a identidade visual oficial do Governo de Pernambuco, garantindo uma interface institucional, acessível e profissional, ideal para ambientes de administração pública.
+
 🛠️ Stack Tecnológica
+
 Frontend
 
     Next.js 14+ (App Router): Utilizando TypeScript para garantir um código tipado e livre de erros em tempo de execução.
