@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # O Banco de Dados
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: api_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # O seu Backend (NestJS)
+  api:
+    build: ./backend
+    container_name: nestjs_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # MUITO IMPORTANTE: aqui usamos 'db' porque é o nome do serviço acima
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/api_db?schema=public"
+    depends_on:
+      - db
+
+  # O seu Frontend (React)
+  web:
+    build: ./frontend
+    container_name: react_frontend
+    restart: always
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
